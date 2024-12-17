@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Translator AI</title>
+
+    <!-- Link a las hojas de estilos de Tailwind CSS y Flowbite -->
+    <link href="../css/output.css" rel="stylesheet">
+    <link href="../css/mycss.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css" rel="stylesheet" />
+</head>
+<body>
+    <!-- Header -->
+    <header class="bg-gray-200 border-b border-gray-200">
+        <div class="flex flex-wrap items-center justify-between mx-auto p-4">
+            <h1 class="mb-4 text-3xl font-extrabold text-gray-950 md:text-5xl lg:text-6xl">
+                <span class="text-transparent bg-clip-text bg-gradient-to-r to-emerald-600 from-sky-400">Translator</span> AI.
+            </h1>
+            <p class="text-lg font-normal text-gray-500 lg:text-xl">
+                Pequeño proyecto con AWS, para la asignatura de Programación de Inteligencia Artificial. El proyecto consiste en subir grabaciones de audio y poder traducirlas a otros idiomas.
+                Para esto utilizo los servicios de S3, Amazon Transcribe, Amazon Translate y Amazon Polly.
+            </p>
+        </div>
+    </header>
+
+    <!-- Notificaciones -->
+    <div class="absolute right-4 top-[100px] space-y-4 z-50 max-w-md">
+        <!-- Notificación de éxito -->
+        <div id="successAlert" class="hidden flex items-center p-4 text-sm text-green-800 border border-green-300 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400 dark:border-green-800" role="alert">
+            <svg class="flex-shrink-0 inline w-4 h-4 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 1 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+            </svg>
+            <div>
+                <span id="successAlertText" class="font-medium"></span>
+            </div>
+        </div>
+
+        <!-- Notificación de error -->
+        <div id="errorAlert" class="hidden flex items-center p-4 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400 dark:border-red-800" role="alert">
+            <svg class="flex-shrink-0 inline w-4 h-4 mr-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 1 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+            </svg>
+            <div>
+                <span id="errorAlertText" class="font-medium"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container mx-auto p-4">
+        <!-- Subida de grabación -->
+        <section class="mb-6">
+            <h2 class="mb-4 text-xl font-extrabold text-gray-950 lg:text-2xl">Sube aquí tu grabación para poder traducirla</h2>
+            <h3 class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Subir grabación</h3>
+            <div class="flex items-center space-x-4">
+                <input 
+                    class="block w-1/2 text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" 
+                    id="file" type="file" accept="audio/*" required>
+                <button 
+                    id="uploadRecordButton" 
+                    type="button" 
+                    class="focus:outline-none text-gray-900 bg-yellow-400 hover:bg-yellow-500 focus:ring-4 focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:focus:ring-yellow-900">
+                    Subir
+                </button>
+            </div>
+        </section>
+
+        <!-- Transcripción -->
+        <section class="mb-6">
+            <h2 class="mb-4 text-xl font-extrabold text-gray-950 lg:text-2xl">Transcripción de audio</h2>
+            <div class="flex items-center space-x-6 bg-gray-200 rounded-lg p-5" style="height: 200px;">
+                <div class="w-1/2 flex flex-col items-center space-y-4">
+                    <label for="recordingsDropdown" class="sr-only">Elige una grabación</label>
+                    <select id="recordingsDropdown" class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-600 appearance-none dark:text-gray-400 dark:border-gray-700 focus:outline-none focus:ring-0 focus:border-gray-600 peer">
+                        <option value="" disabled selected>Selecciona una grabación</option>
+                    </select>
+                
+                    <label for="languagesDropdown" class="sr-only">Selecciona el idioma de la grabación</label>
+                    <select id="languagesDropdown" class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-600 appearance-none dark:text-gray-400 dark:border-gray-700 focus:outline-none focus:ring-0 focus:border-gray-600 peer">
+                        <option value="" disabled selected>Selecciona el idioma de la grabación</option>
+                        <option value="es-ES">Español (España)</option>
+                        <option value="es-MX">Español (Latinoamérica)</option>
+                        <option value="en-US">Inglés (EE.UU.)</option>
+                        <option value="en-GB">Inglés (Británico)</option>
+                        <option value="fr-FR">Francés</option>
+                        <option value="de-DE">Alemán</option>
+                        <option value="it-IT">Italiano</option>
+                        <option value="pt-BR">Portugués (Brasil)</option>
+                        <option value="zh">Chino (Simplificado)</option>
+                        <option value="ja-JP">Japonés</option>
+                    </select>
+        
+                    <button 
+                        id="transcribeButton" 
+                        type="button" 
+                        class="focus:outline-none text-gray-900 bg-yellow-400 hover:bg-yellow-500 focus:ring-4 focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:focus:ring-yellow-900">
+                        Iniciar transcripción
+                    </button>
+                </div>                
+                <div class="w-1/2 h-full flex items-center">
+                    <div id="transcriptionResult" class="text-gray-800 border rounded p-4 w-full h-full bg-white overflow-auto"></div>
+                </div>
+            </div>
+        </section>  
+        
+        <!-- Traducción -->
+        <section id="translateSection" class="mb-6 hidden">
+            <h2 class="mb-4 text-xl font-extrabold text-gray-950 lg:text-2xl">Traducción</h2>
+            <div class="flex items-center space-x-6 bg-gray-200 rounded-lg p-5" style="height: 200px;">
+                <div class="w-1/2 flex flex-col items-center space-y-4">
+                    <label for="translateLanguagesDropdown" class="sr-only">Selecciona el idioma de traducción</label>
+                    <select id="translateLanguagesDropdown" class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-600 appearance-none dark:text-gray-400 dark:border-gray-700 focus:outline-none focus:ring-0 focus:border-gray-600 peer">
+                        <option value="" disabled selected>Selecciona el idioma</option>
+                        <option value="es">Español (España)</option>
+                        <option value="es-MX">Español (México)</option>
+                        <option value="en">Inglés</option>
+                        <option value="en-GB">Inglés (Británico)</option>
+                        <option value="fr">Francés</option>
+                        <option value="de">Alemán</option>
+                        <option value="it">Italiano</option>
+                        <option value="ja">Japonés</option>
+                        <option value="pt">Portugués (Brasil)</option>
+                        <option value="zh">Chino Simplificado</option>
+                    </select>
+        
+                    <div class="flex items-center space-x-4">
+                        <button 
+                            id="translateButton" 
+                            type="button" 
+                            class="focus:outline-none text-gray-900 bg-yellow-400 hover:bg-yellow-500 focus:ring-4 focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:focus:ring-yellow-900">
+                            Traducir
+                        </button>
+        
+                        <a id="downloadLink" class="hidden text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-green-600 dark:hover:bg-green-700 focus:outline-none dark:focus:ring-green-800">
+                            Descargar
+                        </a>
+                    </div>
+                </div>
+                <div class="w-1/2 h-full flex flex-col items-center relative">
+
+                    <div id="translateResult" class="text-gray-800 border rounded p-4 w-full h-full bg-white overflow-auto relative"></div>
+
+                    <button 
+                        id="playAudioButton" 
+                        class="hidden absolute top-2 right-2 p-2 bg-gray-200 rounded-full hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                            <path fill-rule="evenodd" d="M8.6 5.2A1 1 0 0 0 7 6v12a1 1 0 0 0 1.6.8l8-6a1 1 0 0 0 0-1.6l-8-6Z" clip-rule="evenodd"/>
+                        </svg>
+                    </button>
+                
+                    <audio id="audioPlayer" class="hidden" controls></audio>
+                </div>
+            </div>
+        </section>            
+    </main>
+
+    <!-- CDN de Flowbite -->
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+
+    <!-- JavaScript -->
+    <script src="../js/main_view.js"></script>
+</body>
+</html>
